@@ -92,7 +92,7 @@ pub fn create_issue_from_failed_run(
     let failed_job_ids = util::id_from_job_lines(&failed_jobs);
     let failed_job_logs: Vec<String> = failed_job_ids
         .iter()
-        .map(|id| gh::failed_job_log(id))
+        .map(|id| gh::failed_job_log(&repo, id))
         .collect::<Result<Vec<String>, Box<dyn Error>>>()?;
     log::info!("Got {} failed job log(s)", failed_job_logs.len());
 

@@ -20,10 +20,12 @@ pub fn run_summary(repo: &str, run_id: &str) -> Result<String, Box<dyn Error>> {
     Ok(String::from_utf8_lossy(&output.stdout).to_string())
 }
 
-pub fn failed_job_log(job_id: &str) -> Result<String, Box<dyn Error>> {
+pub fn failed_job_log(repo: &str, job_id: &str) -> Result<String, Box<dyn Error>> {
     let output = Command::new(GITHUB_CLI)
         .arg("run")
         .arg("view")
+        .arg("--repo")
+        .arg(repo)
         .arg("--job")
         .arg(job_id)
         .arg("--log-failed")
