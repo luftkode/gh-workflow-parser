@@ -1,5 +1,10 @@
 use std::error::Error;
 
+/// The maximum Levenshtein distance for issues to be considered similar.
+///
+/// Determined in tests at the bottom of this file.
+const LEVENSHTEIN_THRESHOLD: usize = 100;
+
 use crate::{
     err_msg_parse,
     errlog::ErrorLog,
@@ -23,6 +28,9 @@ pub enum Command {
         /// The kind of workflow (e.g. Yocto)
         #[arg(short, long)]
         kind: WorkflowKind,
+        /// Don't create the issue if a similar issue already exists
+        #[arg(short, long, default_value_t = true)]
+        no_duplicate: bool,
     },
 }
 
@@ -68,6 +76,7 @@ pub fn create_issue_from_failed_run(
     label: &str,
     kind: WorkflowKind,
     dry_run: bool,
+    no_duplicate: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Run the GitHub CLI to get the workflow run
     let run_summary = gh::run_summary(&repo, run_id)?;
@@ -100,6 +109,27 @@ pub fn create_issue_from_failed_run(
         label.to_string(),
         kind,
     )?;
+    if no_duplicate {
+        let similar_issues = gh::issue_bodies_open_with_label(&repo, label)?;
+        // Check how similar the issues are
+        let smallest_distance = similar_issues
+            .iter()
+            .map(|issue| distance::levenshtein(issue, &gh_issue.body()))
+            .min()
+            .unwrap_or(usize::MAX);
+        log::info!("Smallest levenshtein distance to similar issue: {smallest_distance} (Similarity threshold={LEVENSHTEIN_THRESHOLD})");
+        match smallest_distance {
+            0 => {
+                log::warn!("An issue with the exact same body already exists. Exiting...");
+                std::process::exit(0);
+            },
+            _ if smallest_distance < LEVENSHTEIN_THRESHOLD => {
+                log::warn!("An issue with a similar body already exists. Exiting...");
+                std::process::exit(0);
+            },
+            _ => log::info!("No similar issue found. Continuing..."),
+        }
+    }
     if dry_run {
         println!("####################################");
         println!("DRY RUN MODE! The following issue would be created:");
@@ -110,4 +140,122 @@ pub fn create_issue_from_failed_run(
         gh::create_issue(&repo, gh_issue.title(), &gh_issue.body(), gh_issue.label())?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use pretty_assertions::assert_eq;
+
+    const EXAMPLE_ISSUE_BODY_0: &str = r#"**Run ID**: 7858139663 [LINK TO RUN]( https://github.com/luftkode/distro-template/actions/runs/7850874958)
+
+**2 jobs failed:**
+- **`Test template xilinx`**
+- **`Test template raspberry`**
+
+### `Test template xilinx` (ID 21442749267)
+**Step failed:** `📦 Build yocto image`
+\
+**Log:** https://github.com/luftkode/distro-template/actions/runs/7858139663/job/21442749267
+\
+*Best effort error summary*:
+```
+Yocto error: ERROR: No recipes available for: ...
+```
+### `Test template raspberry` (ID 21442749166)
+**Step failed:** `📦 Build yocto image`
+\
+**Log:** https://github.com/luftkode/distro-template/actions/runs/7858139663/job/21442749166
+\
+*Best effort error summary*:
+```
+Yocto error: ERROR: No recipes available for: ...
+```"#;
+
+    const EXAMPLE_ISSUE_BODY_1: &str = r#"**Run ID**: 7858139663 [LINK TO RUN]( https://github.com/luftkode/distro-template/actions/runs/7850874958)
+
+**2 jobs failed:**
+- **`Test template xilinx`**
+- **`Test template raspberry`**
+
+### `Test template xilinx` (ID 21442749267)
+**Step failed:** `📦 Build yocto image`
+\
+**Log:** https://github.com/luftkode/distro-template/actions/runs/7858139663/job/21442749267
+\
+*Best effort error summary*:
+```
+Yocto error: ERROR: No recipes available for: ...
+```
+### `Test template raspberry` (ID 21442749166)
+**Step failed:** `📦 Build yocto image`
+\
+**Log:** https://github.com/luftkode/distro-template/actions/runs/7858139663/job/21442749166
+\
+*Best effort error summary*:
+```
+Yocto error: ERROR: No recipes available for: ...
+```"#;
+
+    #[test]
+    fn test_issue_body_distance() {
+        let issue_0 = EXAMPLE_ISSUE_BODY_0.to_string();
+        let issue_1 = EXAMPLE_ISSUE_BODY_1.to_string();
+        let distance = distance::levenshtein(&issue_0, &issue_1);
+        assert_eq!(distance, 0);
+    }
+
+    /// Identical except for very similar run and job IDs
+    #[test]
+    fn test_issue_body_distance_edit_minimal_diff() {
+        let issue_0 = EXAMPLE_ISSUE_BODY_0.to_string();
+        let issue_1 = EXAMPLE_ISSUE_BODY_1.to_string();
+        let new_run_id = "7858139660";
+        let new_job0_id = "21442749260";
+        let new_job1_id = "21442749200";
+
+        let issue_1 = issue_1.replace("7858139663", new_run_id);
+        let issue_1 = issue_1.replace("21442749267", new_job0_id);
+        let issue_1 = issue_1.replace("21442749166", new_job1_id);
+
+        let distance = distance::levenshtein(&issue_0, &issue_1);
+        assert_eq!(distance, 11);
+    }
+
+    /// Identical except for as different run and job IDs as possible
+    #[test]
+    fn test_issue_body_distance_edit_largest_similar() {
+        let issue_0 = EXAMPLE_ISSUE_BODY_0.to_string();
+        let issue_1 = EXAMPLE_ISSUE_BODY_1.to_string();
+        let new_run_id = "0000000000";
+        let new_job0_id = "00000000000";
+        let new_job1_id = "33333333333";
+
+        let issue_1 = issue_1.replace("7858139663", new_run_id);
+        let issue_1 = issue_1.replace("21442749267", new_job0_id);
+        let issue_1 = issue_1.replace("21442749166", new_job1_id);
+
+        let distance = distance::levenshtein(&issue_0, &issue_1);
+        assert_eq!(distance, 74);
+    }
+
+    /// Smallest difference in job and run IDs but different in other ways and should be treated as different.
+    #[test]
+    fn test_issue_body_distance_edit_minimal_but_different() {
+        let issue_0 = EXAMPLE_ISSUE_BODY_0.to_string();
+        let issue_1 = EXAMPLE_ISSUE_BODY_1.to_string();
+        let new_run_id = "7858139660";
+        let new_job0_id = "21442749260";
+        let new_job1_id = "21442749200";
+
+        let issue_1 = issue_1.replace("7858139663", new_run_id);
+        let issue_1 = issue_1.replace("21442749267", new_job0_id);
+        let issue_1 = issue_1.replace("21442749166", new_job1_id);
+        let issue_1 = issue_1.replace(
+            "Yocto error: ERROR: No recipes available for: ...",
+            "ERROR: fetcher failure. malformed url. Attempting to fetch from ${SOURCE_MIRROR_URL}",
+        );
+
+        let distance = distance::levenshtein(&issue_0, &issue_1);
+        assert_eq!(distance, 153);
+    }
 }
