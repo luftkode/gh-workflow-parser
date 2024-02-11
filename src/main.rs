@@ -10,7 +10,13 @@ pub mod util;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let config = config::init()?;
-    log::info!("Parsing GitHub repository: {}", config.repo);
+
+    // Generate completion script and exit
+    if config.generate_completion_script() {
+        return Ok(());
+    }
+
+    log::info!("Parsing GitHub repository: {}", config.repo());
 
     use commands::Command::*;
     match config.subcmd() {

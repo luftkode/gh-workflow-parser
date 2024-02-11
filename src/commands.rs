@@ -16,8 +16,7 @@ use clap::{Subcommand, ValueEnum};
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
-    /// Create a GitHub issuem from a failed workflow run
-    #[command(arg_required_else_help = true)]
+    /// Create a GitHub issue from a failed workflow run
     CreateIssueFromRun {
         /// The GitHub workflow run ID
         #[arg(short = 'r', long)]
