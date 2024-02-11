@@ -135,7 +135,8 @@ pub fn create_issue_from_failed_run(
         println!("DRY RUN MODE! The following issue would be created:");
         println!("==== ISSUE TITLE ==== \n{}", gh_issue.title());
         println!("==== ISSUE LABEL ==== \n{}", gh_issue.label());
-        println!("==== ISSUE BODY ==== \n{}", gh_issue.body());
+        println!("==== START OF ISSUE BODY ==== \n{}", gh_issue.body());
+        println!("==== END OF ISSUE BODY ====");
     } else {
         gh::create_issue(&repo, gh_issue.title(), &gh_issue.body(), gh_issue.label())?;
     }
