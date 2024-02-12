@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::{error::Error, process::Command};
 
+pub mod util;
+
 pub const GITHUB_CLI: &str = "gh";
 
 pub fn run_summary(repo: &str, run_id: &str) -> Result<String, Box<dyn Error>> {
@@ -69,6 +71,7 @@ pub fn create_issue(
     Ok(())
 }
 
+/// Helper struct to deserialize a JSON array of github issue bodies
 #[derive(Serialize, Deserialize)]
 struct GhIssueBody {
     pub body: String,
@@ -100,19 +103,6 @@ pub fn issue_bodies_open_with_label(
     let output = String::from_utf8_lossy(&output.stdout);
     let parsed: Vec<GhIssueBody> = serde_json::from_str(&output)?;
     Ok(parsed.into_iter().map(|item| item.body).collect())
-}
-
-pub fn repo_url_to_job_url(repo_url: &str, run_id: &str, job_id: &str) -> String {
-    let run_url = repo_url_to_run_url(repo_url, run_id);
-    run_url_to_job_url(&run_url, job_id)
-}
-
-pub fn repo_url_to_run_url(repo_url: &str, run_id: &str) -> String {
-    format!("{repo_url}/actions/runs/{run_id}")
-}
-
-pub fn run_url_to_job_url(run_url: &str, job_id: &str) -> String {
-    format!("{run_url}/job/{job_id}")
 }
 
 #[cfg(test)]

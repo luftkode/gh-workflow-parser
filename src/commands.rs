@@ -53,7 +53,7 @@ fn parse_to_gh_issue(
             Ok(FailedJob::new(
                 errlog.failed_job().to_owned(),
                 errlog.job_id().to_owned(),
-                gh::repo_url_to_job_url(repo, &run_id, errlog.job_id()),
+                gh::util::repo_url_to_job_url(repo, &run_id, errlog.job_id()),
                 errlog.failed_step().to_owned(),
                 err_summary,
             ))
@@ -62,7 +62,7 @@ fn parse_to_gh_issue(
 
     let issue = Issue::new(
         run_id.to_string(),
-        gh::repo_url_to_run_url(repo, &run_id),
+        gh::util::repo_url_to_run_url(repo, &run_id),
         failed_jobs,
         label,
     );
