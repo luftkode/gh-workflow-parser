@@ -105,6 +105,41 @@ pub fn issue_bodies_open_with_label(
     Ok(parsed.into_iter().map(|item| item.body).collect())
 }
 
+/// Create a label in the GitHub repository
+/// The color should be a 6 character hex code
+/// if `force` is true and the label already exists, it will be overwritten
+pub fn create_label(
+    repo: &str,
+    name: &str,
+    color: &str,
+    description: &str,
+    force: bool,
+) -> Result<(), Box<dyn Error>> {
+    let mut cmd = Command::new(GITHUB_CLI);
+    cmd.arg("label")
+        .arg("create")
+        .arg(name)
+        .arg("--repo")
+        .arg(repo)
+        .arg("--color")
+        .arg(color)
+        .arg("--description")
+        .arg(description);
+
+    if force {
+        cmd.arg("--force");
+    }
+
+    let output = cmd.output()?;
+    assert!(
+        output.status.success(),
+        "Failed to create label. Failure: {stderr}",
+        stderr = String::from_utf8_lossy(&output.stderr)
+    );
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
