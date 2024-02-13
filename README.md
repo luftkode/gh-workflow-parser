@@ -5,6 +5,9 @@
 Make automatic issue creation a lot smarter. Adding error labels, link to specific runs and appropriate error logs.
 ![help-screenshot](docs/help-screenshot.png)
 
+# Installation
+Build from source or install with `cargo install gh-workflow-parser`
+
 # Usage
 Run `gh-workflow-parse --help` to get started.
 
