@@ -1,5 +1,14 @@
 # GitHub Workflow Parser
 
+# Purpose
+
+Make automatic issue creation a lot smarter. Adding error labels, link to specific runs and appropriate error logs.
+![help-screenshot](docs/help-screenshot.png)
+
+# Usage
+Run `gh-workflow-parse --help` to get started.
+
+
 ## Example of a created issue's body
 **Run ID**: 7858139663 [LINK TO RUN](github.com/luftkode/distro-template/actions/runs/7858139663)
 
@@ -24,3 +33,5 @@ ERROR: Task (virtual:native:/app/yocto/build/../poky/meta/recipes-support/sqlite
 <br>
 blabla error
 </details>
+
+## Use
