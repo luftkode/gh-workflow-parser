@@ -7,8 +7,6 @@ Make automatic issue creation a lot smarter. Adding error labels, link to specif
 
 # Installation
 
-⚠️ A working installation of [GitHub CLI](https://cli.github.com/) `v2.43.1` or later is required. ⚠️
-
 Build from source or install with `cargo install gh-workflow-parser`
 
 # Usage

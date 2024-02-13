@@ -1,13 +1,59 @@
 //! Functions for interacting with GitHub via the `gh` CLI
 use serde::{Deserialize, Serialize};
+use std::ffi::{OsStr, OsString};
+use std::fs::File;
+use std::io::Write;
+use std::path::PathBuf;
+use std::sync::OnceLock;
 use std::{error::Error, process::Command};
 
 pub mod util;
 
-pub const GITHUB_CLI: &str = "gh";
+include!(concat!(env!("OUT_DIR"), "/include_gh_cli.rs"));
+//pub const GITHUB_CLI: &str = "gh";
+pub static GITHUB_CLI: OnceLock<OsString> = OnceLock::new();
+pub fn gh_cli() -> &'static OsStr {
+    GITHUB_CLI.get_or_init(|| {
+        let gh_cli_path = gh_cli_first_time_setup().unwrap();
+        OsString::from(gh_cli_path)
+    })
+}
+
+pub fn gh_cli_first_time_setup() -> Result<PathBuf, Box<dyn Error>> {
+    let mut path = std::env::current_exe()?;
+    path.pop();
+    path.push("gh-workflow-parser-deps");
+
+    if !path.exists() {
+        std::fs::create_dir(&path)?;
+    }
+
+    let gh_cli_path = path.join("gh_cli");
+
+    if !gh_cli_path.exists() {
+        log::debug!("the gh_cli file at {gh_cli_path:?} doesn't exist. Creating it...");
+        // first decompress the gh-cli binary blob
+        let gh_cli_bytes = GH_CLI_BYTES;
+        log::trace!("gh_cli_bytes size: {}", gh_cli_bytes.len());
+
+        // Write the gh_cli file to the gh_cli_path
+        // first create it with the permissions 0o755
+        let mut file = File::create(&gh_cli_path)?;
+        #[cfg(target_os = "linux")]
+        crate::util::set_linux_file_permissions(&mut file, 0o755)?;
+        file.write_all(gh_cli_bytes)?;
+        log::debug!("gh_cli file written to {gh_cli_path:?}");
+    } else {
+        log::debug!(
+            "the gh_cli file at {gh_cli_path:?} already exists. Skipping first time setup..."
+        );
+    }
+
+    Ok(gh_cli_path)
+}
 
 pub fn run_summary(repo: &str, run_id: &str) -> Result<String, Box<dyn Error>> {
-    let output = Command::new(GITHUB_CLI)
+    let output = Command::new(gh_cli())
         .arg("run")
         .arg(format!("--repo={repo}"))
         .arg("view")
@@ -24,7 +70,7 @@ pub fn run_summary(repo: &str, run_id: &str) -> Result<String, Box<dyn Error>> {
 }
 
 pub fn failed_job_log(repo: &str, job_id: &str) -> Result<String, Box<dyn Error>> {
-    let output = Command::new(GITHUB_CLI)
+    let output = Command::new(gh_cli())
         .arg("run")
         .arg("view")
         .arg("--repo")
@@ -64,7 +110,7 @@ pub fn create_issue(
     }
     // format the labels into a single string separated by commas
     let labels = labels.join(",");
-    let mut command = Command::new(GITHUB_CLI);
+    let mut command = Command::new(gh_cli());
     command
         .arg("issue")
         .arg("create")
@@ -95,7 +141,7 @@ pub fn issue_bodies_open_with_label(
     repo: &str,
     label: &str,
 ) -> Result<Vec<String>, Box<dyn Error>> {
-    let output = Command::new(GITHUB_CLI)
+    let output = Command::new(gh_cli())
         .arg("issue")
         .arg("list")
         .arg("--repo")
@@ -127,7 +173,7 @@ pub fn issue_bodies_open_with_label(
 
 /// Get all labels in a GitHub repository
 pub fn all_labels(repo: &str) -> Result<Vec<String>, Box<dyn Error>> {
-    let output = Command::new(GITHUB_CLI)
+    let output = Command::new(gh_cli())
         .arg("--repo")
         .arg(repo)
         .arg("label")
@@ -162,7 +208,7 @@ pub fn create_label(
     description: &str,
     force: bool,
 ) -> Result<(), Box<dyn Error>> {
-    let mut cmd = Command::new(GITHUB_CLI);
+    let mut cmd = Command::new(gh_cli());
     cmd.arg("label")
         .arg("create")
         .arg(name)

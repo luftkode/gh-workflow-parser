@@ -1,4 +1,5 @@
 //! CLI configuration and initialization
+use crate::gh::gh_cli;
 use crate::util::check_gh_cli_version;
 
 use super::commands::Command;
@@ -87,8 +88,8 @@ pub fn init() -> Result<Config, Box<dyn Error>> {
     }
 
     // Check that the GitHub CLI is installed
-    if which(crate::gh::GITHUB_CLI).is_err() {
-        log::error!("GitHub CLI not found. Please install it from https://cli.github.com/");
+    if let Err(e) = which(gh_cli()) {
+        log::error!("GitHub CLI not found: {e}");
         std::process::exit(1);
     }
     check_gh_cli_version(GH_CLI_MIN_VERSION)?;
