@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2024-02-13
+
+### Added
+- Compression/decompression of GitHuc CLI blob to get under the crates.io 10 MiB upload limit.
+
 ## [0.2.0] - 2024-02-13
 
 ### Changed
