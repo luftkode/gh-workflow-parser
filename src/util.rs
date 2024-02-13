@@ -1,3 +1,5 @@
+use std::{error::Error, path::PathBuf};
+
 use regex::Regex;
 
 /// Take the lines with failed jobs from the output of `gh run view`
@@ -26,6 +28,32 @@ pub fn id_from_job_lines(lines: &[String]) -> Vec<String> {
                 .to_owned()
         })
         .collect()
+}
+
+/// Parse an absolute path from a string. This assumes that the the first '/' found in the string is the start
+/// of the path.
+/// # Example
+/// ```
+/// # use gh_workflow_parser::util::first_abs_path_from_str;
+/// use std::path::PathBuf;
+///
+/// let test_str = r#" ERROR: Logfile of failure stored in: /app/yocto/build/tmp/work/x86_64-linux/sqlite3-native/3.43.2/temp/log.do_fetch.21616"#;
+/// let path = first_abs_path_from_str(test_str).unwrap();
+/// assert_eq!(
+///    path,
+///   PathBuf::from("/app/yocto/build/tmp/work/x86_64-linux/sqlite3-native/3.43.2/temp/log.do_fetch.21616")
+/// );
+/// ```
+///
+/// # Errors
+/// This function returns an error if no '/' is found in the string or
+/// if the path is not a valid path.
+pub fn first_abs_path_from_str(s: &str) -> Result<PathBuf, Box<dyn Error>> {
+    let start = s.find('/').unwrap_or_else(|| {
+        panic!("Expected a path in the string, but no '/' found in string: {s}")
+    });
+    let path = PathBuf::from(&s[start..]);
+    Ok(path)
 }
 
 #[cfg(test)]
@@ -90,5 +118,15 @@ mod tests {
         assert_eq!(ids[0], "21442749166");
         assert_eq!(ids[1], "21442749267");
         assert_eq!(ids[2], "01449267");
+    }
+
+    #[test]
+    fn test_absolute_path_from_str() {
+        let test_str = r#" ERROR: Logfile of failure stored in: /app/yocto/build/tmp/work/x86_64-linux/sqlite3-native/3.43.2/temp/log.do_fetch.21616"#;
+        let path = first_abs_path_from_str(test_str).unwrap();
+        assert_eq!(
+            path,
+            PathBuf::from("/app/yocto/build/tmp/work/x86_64-linux/sqlite3-native/3.43.2/temp/log.do_fetch.21616")
+        );
     }
 }
