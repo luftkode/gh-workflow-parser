@@ -17,6 +17,8 @@ const MAX_CRATES_IO_UPLOAD_SIZE: usize = 1024 * 1024 * 10;
 
 /// Path to the GitHub CLI file
 const GH_CLI_PATH: &str = "gh_cli/gh";
+/// Path to the GitHub CLI compressed file
+const GH_CLI_COMPRESSED_PATH: &str = "gh_cli/compressed/gh_cli_bz2";
 
 /// Name of the file that contains the byte array for the GitHub CLI file
 const INCLUDE_GH_CLI_FILE: &str = "include_gh_cli.rs";
@@ -51,25 +53,27 @@ fn main() {
     let gh_cli_path = Path::new(GH_CLI_PATH);
 
     if !gh_cli_path.exists() {
-        print_warn!("{GH_CLI_PATH} does not exist");
-        std::process::exit(1);
+        print_warn!("{GH_CLI_PATH} does not exist - relying on the archived binary in {GH_CLI_COMPRESSED_PATH}");
+    } else {
+        let gh_cli_bytes = fs::read(gh_cli_path).expect("Failed to read gh_cli/gh");
+        let compressed_gh_cli_bytes = bzip2_compress(&gh_cli_bytes).unwrap();
+        assert!(compressed_gh_cli_bytes.len() < MAX_CRATES_IO_UPLOAD_SIZE);
+        // Write to the `gh_cli/compressed` file that will be included in the crates.io package
+        fs::write(GH_CLI_COMPRESSED_PATH, compressed_gh_cli_bytes)
+            .expect("Failed to write gh_cli_bz2");
     }
 
-    include_gh_cli(out_dir_path, gh_cli_path).unwrap();
+    include_gh_cli(out_dir_path).unwrap();
 }
 
-fn include_gh_cli(out_dir: &Path, gh_cli_path: &Path) -> Result<(), Box<dyn Error>> {
-    let gh_cli_bytes = fs::read(gh_cli_path).expect("Failed to read gh_cli/gh");
+fn include_gh_cli(out_dir: &Path) -> Result<(), Box<dyn Error>> {
+    let gh_cli_bytes = fs::read(GH_CLI_COMPRESSED_PATH).expect("Failed to read gh_cli/gh");
+    let gh_cli_size = gh_cli_bytes.len();
 
-    let compressed_gh_cli_bytes = bzip2_compress(&gh_cli_bytes)?;
-    let github_cli_compressed_size = compressed_gh_cli_bytes.len();
-    assert!(github_cli_compressed_size < MAX_CRATES_IO_UPLOAD_SIZE);
+    let gh_cli_path = out_dir.join("gh_cli_bz2");
+    fs::write(&gh_cli_path, gh_cli_bytes).expect("Failed to write gh_cli_bz2");
 
-    let gh_cli_path = out_dir.join("gh_cli");
-    fs::write(&gh_cli_path, compressed_gh_cli_bytes).expect("Failed to write gh_cli_bz2");
-
-    let include_gh_cli_rs_contents =
-        format_include_gh_cli_rs(github_cli_compressed_size, &gh_cli_path);
+    let include_gh_cli_rs_contents = format_include_gh_cli_rs(gh_cli_size, &gh_cli_path);
 
     let include_gh_cli_rs_path = out_dir.join(INCLUDE_GH_CLI_FILE);
     fs::write(include_gh_cli_rs_path, include_gh_cli_rs_contents)
