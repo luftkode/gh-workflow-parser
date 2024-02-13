@@ -47,9 +47,24 @@ pub fn create_issue(
     repo: &str,
     title: &str,
     body: &str,
-    label: &str,
+    labels: &[String],
 ) -> Result<(), Box<dyn Error>> {
-    let output = Command::new(GITHUB_CLI)
+    // First check if the labels exist on the repository
+    let existing_labels = all_labels(repo)?;
+    for label in labels {
+        if !existing_labels.contains(label) {
+            log::info!("Label {label} does not exist in the repository. Creating it...");
+            create_label(repo, label, "FF0000", "", false)?;
+        } else {
+            log::debug!(
+                "Label {label} already exists in the repository, continuing without creating it."
+            )
+        }
+    }
+    // format the labels into a single string separated by commas
+    let labels = labels.join(",");
+    let mut command = Command::new(GITHUB_CLI);
+    command
         .arg("issue")
         .arg("create")
         .arg("--repo")
@@ -59,8 +74,11 @@ pub fn create_issue(
         .arg("--body")
         .arg(body)
         .arg("--label")
-        .arg(label)
-        .output()?;
+        .arg(labels);
+
+    log::debug!("Debug view of command struct: {command:?}");
+    // Run the command
+    let output = command.output()?;
 
     assert!(
         output.status.success(),
@@ -69,12 +87,6 @@ pub fn create_issue(
     );
 
     Ok(())
-}
-
-/// Helper struct to deserialize a JSON array of github issue bodies
-#[derive(Serialize, Deserialize)]
-struct GhIssueBody {
-    pub body: String,
 }
 
 /// Get the bodies of open issues with a specific label
@@ -101,8 +113,42 @@ pub fn issue_bodies_open_with_label(
     );
 
     let output = String::from_utf8_lossy(&output.stdout);
+
+    /// Helper struct to deserialize a JSON array of github issue bodies
+    #[derive(Serialize, Deserialize)]
+    struct GhIssueBody {
+        pub body: String,
+    }
+
     let parsed: Vec<GhIssueBody> = serde_json::from_str(&output)?;
     Ok(parsed.into_iter().map(|item| item.body).collect())
+}
+
+/// Get all labels in a GitHub repository
+pub fn all_labels(repo: &str) -> Result<Vec<String>, Box<dyn Error>> {
+    let output = Command::new(GITHUB_CLI)
+        .arg("--repo")
+        .arg(repo)
+        .arg("label")
+        .arg("list")
+        .arg("--json")
+        .arg("name")
+        .output()?;
+
+    assert!(
+        output.status.success(),
+        "Failed to list labels. Failure: {stderr}",
+        stderr = String::from_utf8_lossy(&output.stderr)
+    );
+
+    // Parse the received JSON vector of objects with a `name` field
+    let output = String::from_utf8_lossy(&output.stdout);
+    #[derive(Serialize, Deserialize)]
+    struct Label {
+        name: String,
+    }
+    let parsed: Vec<Label> = serde_json::from_str(&output)?;
+    Ok(parsed.into_iter().map(|label| label.name).collect())
 }
 
 /// Create a label in the GitHub repository
@@ -160,6 +206,12 @@ mod tests {
 
     #[test]
     fn test_parse_json_body() {
+        /// Helper struct to deserialize a JSON array of github issue bodies
+        #[derive(Serialize, Deserialize)]
+        struct GhIssueBody {
+            pub body: String,
+        }
+
         let data = r#"
     [
       {
