@@ -9,6 +9,9 @@ keywords = ["CLI", "CI", "tool"]
 description = "Parse GitHub workflows and do stuff like create issues"
 categories = ["command-line-utilities"]
 authors = ["Marc Beck König <mki@skytem.com>"]
+exclude = [
+    "gh_cli"
+]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
