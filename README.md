@@ -19,3 +19,8 @@ ERROR: Task (virtual:native:/app/yocto/build/../poky/meta/recipes-support/sqlite
 
 2024-02-11 00:09:04 - ERROR    - Command "/app/yocto/poky/bitbake/bin/bitbake -c build test-template-ci-xilinx-image package-index" failed with error 1
 ```
+<details>
+<summary>log.do_fetch.21616</summary>
+<br>
+blabla error
+</details>
