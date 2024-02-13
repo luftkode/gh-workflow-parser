@@ -1,6 +1,7 @@
 //! Utility functions for parsing and working with GitHub CLI output and other utility functions.
 use std::{error::Error, path::PathBuf, process::Command};
 
+use crate::gh::gh_cli;
 use once_cell::sync::Lazy;
 use regex::Regex;
 
@@ -60,7 +61,7 @@ pub fn first_abs_path_from_str(s: &str) -> Result<PathBuf, Box<dyn Error>> {
 
 /// Retrieve the GitHub CLI version from the GitHub CLI binary and check that it meets version requirements.
 pub fn check_gh_cli_version(min_required: semver::Version) -> Result<(), Box<dyn Error>> {
-    let gh_cli_version = Command::new("gh").arg("--version").output()?;
+    let gh_cli_version = Command::new(gh_cli()).arg("--version").output()?;
     let version_str = String::from_utf8(gh_cli_version.stdout)?;
     check_gh_cli_version_str(min_required, &version_str)
 }
@@ -98,6 +99,20 @@ pub fn check_gh_cli_version_str(
         return Err(format!("GitHub CLI version {version} is not supported. Please install version {min_required} or higher")
         .into());
     }
+    Ok(())
+}
+
+/// Set the file permissions for a file on Linux
+#[cfg(target_os = "linux")]
+pub fn set_linux_file_permissions(
+    file: &mut std::fs::File,
+    mode: u32,
+) -> Result<(), Box<dyn Error>> {
+    use std::os::unix::fs::PermissionsExt;
+    let meta = file.metadata()?;
+    let mut perms = meta.permissions();
+    perms.set_mode(mode);
+    file.set_permissions(perms)?;
     Ok(())
 }
 
