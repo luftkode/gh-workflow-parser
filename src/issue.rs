@@ -6,10 +6,12 @@
 //! jobs in a GitHub Actions workflow run.
 use std::fmt::{self, Display, Formatter, Write};
 
+use crate::err_msg_parse::ErrorMessageSummary;
+
 #[derive(Debug)]
 pub struct Issue {
     title: String,
-    label: String,
+    labels: Vec<String>,
     body: IssueBody,
 }
 
@@ -20,9 +22,16 @@ impl Issue {
         failed_jobs: Vec<FailedJob>,
         label: String,
     ) -> Self {
+        let mut labels = vec![label];
+        failed_jobs.iter().for_each(|job| {
+            if let Some(failure_label) = job.failure_label() {
+                log::debug!("Adding failure label {failure_label} to issue");
+                labels.push(failure_label);
+            }
+        });
         Self {
             title: "Scheduled run failed".to_string(),
-            label,
+            labels,
             body: IssueBody::new(run_id, run_link, failed_jobs),
         }
     }
@@ -31,8 +40,8 @@ impl Issue {
         self.title.as_str()
     }
 
-    pub fn label(&self) -> &str {
-        self.label.as_str()
+    pub fn labels(&self) -> &[String] {
+        self.labels.as_slice()
     }
 
     pub fn body(&self) -> String {
@@ -97,7 +106,7 @@ pub struct FailedJob {
     id: String,
     url: String,
     failed_step: String,
-    error_message: String,
+    error_message: ErrorMessageSummary,
 }
 
 impl FailedJob {
@@ -106,7 +115,7 @@ impl FailedJob {
         id: String,
         url: String,
         failed_step: String,
-        error_message: String,
+        error_message: ErrorMessageSummary,
     ) -> Self {
         Self {
             name,
@@ -116,10 +125,27 @@ impl FailedJob {
             error_message,
         }
     }
+
+    pub fn failure_label(&self) -> Option<String> {
+        self.error_message.failure_label()
+    }
 }
 
 impl Display for FailedJob {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let summary = self.error_message.summary();
+        let optional_log = match (self.error_message.logfile_name(), self.error_message.log()) {
+            (Some(name), Some(contents)) => format!(
+                "
+<details>
+<summary>{name}</summary>
+<br>
+{contents}
+</details>"
+            ),
+            _ => String::from(""),
+        };
+
         write!(
             f,
             "
@@ -130,12 +156,13 @@ impl Display for FailedJob {
 \\
 *Best effort error summary*:
 ```
-{error_message}```",
+{error_message}```{optional_log}",
             name = self.name,
             id = self.id,
             failed_step = self.failed_step,
             url = self.url,
-            error_message = self.error_message
+            error_message = summary,
+            optional_log = optional_log
         )
     }
 }
@@ -181,22 +208,22 @@ Yocto error: ERROR: No recipes available for: ...
                 "21442749267".to_string(),
                 "https://github.com/luftkode/distro-template/actions/runs/7850874958/job/21442749267".to_string(),
                 "📦 Build yocto image".to_string(),
-                "Yocto error: ERROR: No recipes available for: ...
-".to_string(),
+                ErrorMessageSummary::Other("Yocto error: ERROR: No recipes available for: ...
+".to_string()),
             ),
             FailedJob::new(
                 "Test template raspberry".to_string(),
                 "21442749166".to_string(),
                 "https://github.com/luftkode/distro-template/actions/runs/7850874958/job/21442749166".to_string(),
                 "📦 Build yocto image".to_string(),
-                "Yocto error: ERROR: No recipes available for: ...
-".to_string(),
+                ErrorMessageSummary::Other("Yocto error: ERROR: No recipes available for: ...
+".to_string()),
             ),
         ];
         let label = "bug".to_string();
         let issue = Issue::new(run_id, run_link, failed_jobs, label);
         assert_eq!(issue.title, "Scheduled run failed");
-        assert_eq!(issue.label, "bug");
+        assert_eq!(issue.labels, ["bug"]);
         assert_eq!(issue.body.failed_jobs.len(), 2);
         assert_eq!(issue.body.failed_jobs[0].id, "21442749267");
     }
@@ -212,20 +239,21 @@ Yocto error: ERROR: No recipes available for: ...
                 "21442749267".to_string(),
                 "https://github.com/luftkode/distro-template/actions/runs/7850874958/job/21442749267".to_string(),
                 "📦 Build yocto image".to_string(),
-                "Yocto error: ERROR: No recipes available for: ...
-".to_string(),
+                ErrorMessageSummary::Other("Yocto error: ERROR: No recipes available for: ...
+".to_string()),
             ),
             FailedJob::new(
                 "Test template raspberry".to_string(),
                 "21442749166".to_string(),
                 "https://github.com/luftkode/distro-template/actions/runs/7850874958/job/21442749166".to_string(),
                 "📦 Build yocto image".to_string(),
-                "Yocto error: ERROR: No recipes available for: ...
-".to_string(),
+                ErrorMessageSummary::Other("Yocto error: ERROR: No recipes available for: ...
+".to_string()),
             ),
             ];
 
         let issue_body = IssueBody::new(run_id, run_link, failed_jobs);
         assert_eq!(issue_body.to_string(), EXAMPLE_ISSUE_BODY);
+        //std::fs::write("test2.md", issue_body.to_string()).unwrap();
     }
 }

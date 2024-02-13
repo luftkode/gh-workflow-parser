@@ -46,7 +46,7 @@ fn parse_to_gh_issue(
     label: String,
     kind: WorkflowKind,
 ) -> Result<Issue, Box<dyn Error>> {
-    let failed_jobs = errlogs
+    let failed_jobs: Vec<FailedJob> = errlogs
         .iter()
         .map(|errlog| {
             let err_summary = err_msg_parse::parse_error_message(errlog.no_prefix_log(), kind)?;
@@ -72,7 +72,7 @@ fn parse_to_gh_issue(
 pub fn create_issue_from_failed_run(
     repo: String,
     run_id: &str,
-    label: &str,
+    labels: &str,
     kind: WorkflowKind,
     dry_run: bool,
     no_duplicate: bool,
@@ -105,11 +105,11 @@ pub fn create_issue_from_failed_run(
         failed_logs,
         &repo,
         run_id.to_owned(),
-        label.to_string(),
+        labels.to_string(),
         kind,
     )?;
     if no_duplicate {
-        let similar_issues = gh::issue_bodies_open_with_label(&repo, label)?;
+        let similar_issues = gh::issue_bodies_open_with_label(&repo, labels)?;
         // Check how similar the issues are
         let smallest_distance = similar_issues
             .iter()
@@ -133,11 +133,13 @@ pub fn create_issue_from_failed_run(
         println!("####################################");
         println!("DRY RUN MODE! The following issue would be created:");
         println!("==== ISSUE TITLE ==== \n{}", gh_issue.title());
-        println!("==== ISSUE LABEL ==== \n{}", gh_issue.label());
+        println!("==== ISSUE LABEL(S) ==== \n{}", gh_issue.labels().join(","));
         println!("==== START OF ISSUE BODY ==== \n{}", gh_issue.body());
         println!("==== END OF ISSUE BODY ====");
     } else {
-        gh::create_issue(&repo, gh_issue.title(), &gh_issue.body(), gh_issue.label())?;
+        log::debug!("Creating an issue in the remote repository with the following characteristics:\n==== ISSUE TITLE ==== \n{title}\n==== ISSUE LABEL(S) ==== \n{labels}\n==== START OF ISSUE BODY ==== \n{body}\n==== END OF ISSUE BODY ====", title = gh_issue.title(), labels = gh_issue.labels().join(","), body = gh_issue.body());
+
+        gh::create_issue(&repo, gh_issue.title(), &gh_issue.body(), gh_issue.labels())?;
     }
     Ok(())
 }
