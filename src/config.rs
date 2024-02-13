@@ -1,8 +1,14 @@
+//! CLI configuration and initialization
+use crate::util::check_gh_cli_version;
+
 use super::commands::Command;
 use clap::builder::styling::{AnsiColor, Effects, Styles};
 use clap::*;
 use std::error::Error;
 use which::which;
+
+/// The minimum version of the GitHub CLI required for `gh-workflow-parser` to run as expected.
+pub const GH_CLI_MIN_VERSION: semver::Version = semver::Version::new(2, 43, 1);
 
 #[derive(Parser, Debug)]
 #[command(version, about = "Parse GitHub CI workflows", author, styles = config_styles())]
@@ -85,6 +91,8 @@ pub fn init() -> Result<Config, Box<dyn Error>> {
         log::error!("GitHub CLI not found. Please install it from https://cli.github.com/");
         std::process::exit(1);
     }
+    check_gh_cli_version(GH_CLI_MIN_VERSION)?;
+
     Ok(config)
 }
 

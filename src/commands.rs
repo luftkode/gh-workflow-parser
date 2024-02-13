@@ -1,3 +1,4 @@
+//! The `commands` module contains the subcommands for the `gh-workflow-parser` CLI.
 use std::error::Error;
 
 /// The maximum Levenshtein distance for issues to be considered similar.

@@ -1,4 +1,4 @@
-#![allow(dead_code)]
+//! Contains the ErrorLog struct describing a failed job log from GitHub Actions.
 use once_cell::sync::Lazy;
 use std::error::Error;
 

@@ -1,3 +1,4 @@
+//! Parsing error messages from the Yocto and other workflows
 use crate::{commands::WorkflowKind, err_msg_parse::yocto_err::YoctoFailureKind};
 use std::error::Error;
 

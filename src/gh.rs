@@ -1,3 +1,4 @@
+//! Functions for interacting with GitHub via the `gh` CLI
 use serde::{Deserialize, Serialize};
 use std::{error::Error, process::Command};
 
