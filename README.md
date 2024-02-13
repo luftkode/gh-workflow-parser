@@ -36,5 +36,3 @@ ERROR: Task (virtual:native:/app/yocto/build/../poky/meta/recipes-support/sqlite
 <br>
 blabla error
 </details>
-
-## Use
