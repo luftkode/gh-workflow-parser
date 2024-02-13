@@ -104,24 +104,37 @@ pub fn check_gh_cli_version_str(
 
 /// Set the file permissions for a file on Linux
 #[cfg(target_os = "linux")]
-pub fn set_linux_file_permissions(
-    file: &mut std::fs::File,
-    mode: u32,
-) -> Result<(), Box<dyn Error>> {
-    use std::os::unix::fs::PermissionsExt;
-    let meta = file.metadata()?;
-    let mut perms = meta.permissions();
-    perms.set_mode(mode);
-    file.set_permissions(perms)?;
+pub fn set_linux_file_permissions(file: &std::path::Path, mode: u32) -> Result<(), Box<dyn Error>> {
+    let metadata = std::fs::metadata(file).unwrap();
+    let mut perms = metadata.permissions();
+    std::os::unix::fs::PermissionsExt::set_mode(&mut perms, mode);
+    std::fs::set_permissions(file, perms).unwrap();
     Ok(())
+}
+
+use bzip2::Compression;
+use std::io::prelude::*;
+
+pub fn bzip2_decompress(input: &[u8]) -> Result<Vec<u8>, Box<dyn Error>> {
+    let mut d = bzip2::bufread::BzDecoder::new(input);
+    let mut out = Vec::new();
+    d.read_to_end(&mut out)?;
+    Ok(out)
+}
+
+pub fn bzip2_compress(input: &[u8]) -> Result<Vec<u8>, Box<dyn Error>> {
+    let mut e = bzip2::bufread::BzEncoder::new(input, Compression::new(9));
+    let mut out = Vec::new();
+    e.read_to_end(&mut out)?;
+    Ok(out)
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::config::GH_CLI_MIN_VERSION;
-
     use super::*;
+    use crate::config::GH_CLI_MIN_VERSION;
     use pretty_assertions::assert_eq;
+    use temp_dir::TempDir;
 
     // Output from `gh run --repo=github.com/luftkode/distro-template view 7858139663`
     const TEST_OUTPUT_VIEW_RUN: &str = r#"
@@ -207,5 +220,44 @@ https://github.com/cli/cli/releases/tag/v2.4.0"#;
     fn test_check_gh_cli_version_bad() {
         let version = check_gh_cli_version_str(GH_CLI_MIN_VERSION, GH_CLI_VERSION_BAD_STR);
         assert!(version.is_err());
+    }
+
+    const GH_CLI_PATH: &str = "gh_cli/gh";
+
+    #[test]
+    pub fn test_compress_gh_cli_bz2() {
+        /// Max upload size for crates.io is 10 MiB
+        const MAX_CRATES_IO_UPLOAD_SIZE: usize = 1024 * 1024 * 10;
+        let gh_cli_bytes = std::fs::read(GH_CLI_PATH).unwrap();
+        let compressed = bzip2_compress(&gh_cli_bytes).unwrap();
+        assert!(compressed.len() < gh_cli_bytes.len());
+        assert!(compressed.len() < MAX_CRATES_IO_UPLOAD_SIZE); // Compressed size should be less than half the original size
+    }
+
+    #[test]
+    pub fn test_decompress_gh_cli_bz2() {
+        let gh_cli_bytes = std::fs::read(GH_CLI_PATH).unwrap();
+        let compressed = bzip2_compress(&gh_cli_bytes).unwrap();
+        let decompressed = bzip2_decompress(&compressed).unwrap();
+        assert_eq!(gh_cli_bytes, decompressed);
+    }
+
+    #[test]
+    pub fn test_compress_decompress_is_executable() {
+        let gh_cli_bytes = std::fs::read(GH_CLI_PATH).unwrap();
+        let compressed = bzip2_compress(&gh_cli_bytes).unwrap();
+        let decompressed = bzip2_decompress(&compressed).unwrap();
+        let temp_dir = TempDir::new().unwrap();
+        let file = temp_dir.path().join("gh_cli");
+        std::fs::write(&file, decompressed).unwrap();
+        if cfg!(target_os = "linux") {
+            set_linux_file_permissions(&file, 0o755).unwrap();
+        }
+        let output = std::process::Command::new(&file)
+            .arg("--version")
+            .output()
+            .unwrap();
+        assert!(output.status.success());
+        println!("Output: {}", String::from_utf8_lossy(&output.stdout));
     }
 }

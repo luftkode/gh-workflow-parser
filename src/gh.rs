@@ -1,8 +1,6 @@
 //! Functions for interacting with GitHub via the `gh` CLI
 use serde::{Deserialize, Serialize};
 use std::ffi::{OsStr, OsString};
-use std::fs::File;
-use std::io::Write;
 use std::path::PathBuf;
 use std::sync::OnceLock;
 use std::{error::Error, process::Command};
@@ -36,12 +34,13 @@ pub fn gh_cli_first_time_setup() -> Result<PathBuf, Box<dyn Error>> {
         let gh_cli_bytes = GH_CLI_BYTES;
         log::trace!("gh_cli_bytes size: {}", gh_cli_bytes.len());
 
+        let decompressed_gh_cli = crate::util::bzip2_decompress(gh_cli_bytes)?;
+        log::trace!("decompressed_gh_cli size: {}", decompressed_gh_cli.len());
+
         // Write the gh_cli file to the gh_cli_path
-        // first create it with the permissions 0o755
-        let mut file = File::create(&gh_cli_path)?;
+        std::fs::write(&gh_cli_path, decompressed_gh_cli)?;
         #[cfg(target_os = "linux")]
-        crate::util::set_linux_file_permissions(&mut file, 0o755)?;
-        file.write_all(gh_cli_bytes)?;
+        crate::util::set_linux_file_permissions(&gh_cli_path, 0o755)?;
         log::debug!("gh_cli file written to {gh_cli_path:?}");
     } else {
         log::debug!(

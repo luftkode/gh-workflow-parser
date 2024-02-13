@@ -24,9 +24,14 @@ stderrlog = "0.6.0"
 which = "6.0.0"
 clap_complete = "4.5.0"
 semver = "1.0.21"
+bzip2 = "0.4.4"
+
+[build-dependencies]
+bzip2 = "0.4.4"
 
 [dev-dependencies]
 pretty_assertions = "1.4.0"
+temp-dir = "0.1.11"
 
 [profile.release]
 lto = true

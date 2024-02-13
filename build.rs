@@ -12,6 +12,10 @@ macro_rules! print_warn {
     }
 }
 
+/// Max upload size for crates.io is 10 MiB
+const MAX_CRATES_IO_UPLOAD_SIZE: usize = 1024 * 1024 * 10;
+
+/// Path to the GitHub CLI file
 const GH_CLI_PATH: &str = "gh_cli/gh";
 
 /// Name of the file that contains the byte array for the GitHub CLI file
@@ -27,6 +31,14 @@ pub fn file_len(fpath: &Path) -> io::Result<usize> {
     let mut raw_mtgogetter = Vec::with_capacity(PRE_ALLOC);
     file.read_to_end(raw_mtgogetter.as_mut())?;
     Ok(raw_mtgogetter.len())
+}
+
+/// Compression for the GitHub CLI file (set the compression even higher if the file size is too large for crates.io)
+pub fn bzip2_compress(input: &[u8]) -> Result<Vec<u8>, Box<dyn Error>> {
+    let mut e = bzip2::bufread::BzEncoder::new(input, bzip2::Compression::new(9));
+    let mut out = Vec::new();
+    e.read_to_end(&mut out)?;
+    Ok(out)
 }
 
 fn main() {
@@ -48,12 +60,16 @@ fn main() {
 
 fn include_gh_cli(out_dir: &Path, gh_cli_path: &Path) -> Result<(), Box<dyn Error>> {
     let gh_cli_bytes = fs::read(gh_cli_path).expect("Failed to read gh_cli/gh");
-    let github_cli_size = gh_cli_bytes.len();
+
+    let compressed_gh_cli_bytes = bzip2_compress(&gh_cli_bytes)?;
+    let github_cli_compressed_size = compressed_gh_cli_bytes.len();
+    assert!(github_cli_compressed_size < MAX_CRATES_IO_UPLOAD_SIZE);
 
     let gh_cli_path = out_dir.join("gh_cli");
-    fs::write(&gh_cli_path, gh_cli_bytes).expect("Failed to write gh_cli_bz2");
+    fs::write(&gh_cli_path, compressed_gh_cli_bytes).expect("Failed to write gh_cli_bz2");
 
-    let include_gh_cli_rs_contents = format_include_gh_cli_rs(github_cli_size, &gh_cli_path);
+    let include_gh_cli_rs_contents =
+        format_include_gh_cli_rs(github_cli_compressed_size, &gh_cli_path);
 
     let include_gh_cli_rs_path = out_dir.join(INCLUDE_GH_CLI_FILE);
     fs::write(include_gh_cli_rs_path, include_gh_cli_rs_contents)
@@ -63,10 +79,10 @@ fn include_gh_cli(out_dir: &Path, gh_cli_path: &Path) -> Result<(), Box<dyn Erro
 }
 
 /// Format the contents of the `include_gh_cli.rs` file
-fn format_include_gh_cli_rs(gh_cli_size: usize, gh_cli_path: &Path) -> String {
+fn format_include_gh_cli_rs(gh_cli_compressed_size: usize, gh_cli_path: &Path) -> String {
     format!(
         r#"
-        pub const GH_CLI_BYTES: &[u8; {gh_cli_size}] = include_bytes!({gh_cli_path:?});
+        pub const GH_CLI_BYTES: &[u8; {gh_cli_compressed_size}] = include_bytes!({gh_cli_path:?});
         "#
     )
 }
