@@ -7,6 +7,14 @@ env:
     rustc --version
     cargo --version
 
+# Lint the code
+lint:
+    cargo clippy
+
+# Check if it compiles without compiling
+check:
+    cargo check
+
 # Run the tests
 test:
     cargo test
@@ -17,7 +25,7 @@ build *ARGS:
 
 
 # Run the application (use `--` to pass arguments to the application)
-run *ARGS:
+run ARGS:
     cargo run {{ ARGS }}
 
 # Clean the `target` directory
