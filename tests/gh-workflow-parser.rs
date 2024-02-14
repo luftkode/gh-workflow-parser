@@ -36,3 +36,31 @@ fn create_issue_from_failed_run_yocto() -> Result<(), Box<dyn Error>> {
 
     Ok(())
 }
+
+#[test]
+fn fake_github_cli_create_issue() -> Result<(), Box<dyn Error>> {
+    let mut cmd = Command::cargo_bin("gh-workflow-parser")?;
+
+    cmd.arg("--repo=fake-repo.com")
+        .arg("create-issue-from-run")
+        .arg("--run-id=1337")
+        .arg("--label=\"Random label\"")
+        .arg("--kind=yocto")
+        .arg("--fake-github-cli");
+
+    let std::process::Output {
+        status,
+        stdout: _,
+        stderr,
+    } = cmd.output()?;
+
+    let stderr = String::from_utf8(stderr)?;
+
+    assert!(status.success());
+
+    let stderr_contains_fn = predicate::str::contains("Fake create_issue for repo=fake-repo.com, title=Scheduled run failed, body=**Run ID**: 1337 [LINK TO RUN](fake-repo.com/actions/runs/1337)");
+
+    assert!(stderr_contains_fn.eval(&stderr));
+
+    Ok(())
+}

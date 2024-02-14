@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use gh_workflow_parser::{commands, config};
+use gh_workflow_parser::{commands, config, gh::init_github_cli};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let config = config::init()?;
@@ -12,6 +12,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     log::info!("Parsing GitHub repository: {}", config.repo());
 
+    let github_cli = init_github_cli(config.repo().to_owned(), config.fake_github_cli());
+
     use commands::Command::*;
     match config.subcmd() {
         CreateIssueFromRun {
@@ -22,7 +24,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         } => {
             log::info!("Creating issue from failed run: {run_id}");
             commands::create_issue_from_failed_run(
-                config.repo().to_owned(),
+                github_cli,
                 run_id,
                 label,
                 *kind,

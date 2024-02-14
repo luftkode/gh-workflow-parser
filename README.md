@@ -1,5 +1,14 @@
 # GitHub Workflow Parser
 
+- [GitHub Workflow Parser](#github-workflow-parser)
+- [Purpose](#purpose)
+- [Installation](#installation)
+- [Usage](#usage)
+  - [Example of a created issue's body](#example-of-a-created-issues-body)
+    - [`Test template xilinx` (ID 21442749267)](#test-template-xilinx-id-21442749267)
+- [Code documentation](#code-documentation)
+
+
 # Purpose
 
 Make automatic issue creation a lot smarter. Adding error labels, link to specific runs and appropriate error logs.
@@ -37,3 +46,7 @@ ERROR: Task (virtual:native:/app/yocto/build/../poky/meta/recipes-support/sqlite
 <br>
 blabla error
 </details>
+
+
+# Code documentation
+Available [HERE](https://docs.rs/gh-workflow-parser/latest/gh_workflow_parser/)

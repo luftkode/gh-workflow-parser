@@ -22,6 +22,9 @@ pub struct Config {
     /// Debug flag to run through a scenario without making changes
     #[arg(long, default_value_t = false, global = true)]
     dry_run: bool,
+    /// Fake the GitHub CLI for testing
+    #[arg(long, default_value_t = false, global = true)]
+    fake_github_cli: bool,
     /// Verbosity level (0-4)
     #[arg(short, long, global = true, default_value_t = 2)]
     verbosity: u8,
@@ -39,6 +42,11 @@ impl Config {
     /// Get the dry run flag
     pub fn dry_run(&self) -> bool {
         self.dry_run
+    }
+
+    /// Get the fake GitHub CLI flag
+    pub fn fake_github_cli(&self) -> bool {
+        self.fake_github_cli
     }
 
     /// Get the subcommand
