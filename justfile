@@ -11,6 +11,10 @@ env:
 lint:
     cargo clippy
 
+# Format the code
+format:
+    cargo fmt
+
 # Check if it compiles without compiling
 check:
     cargo check
@@ -35,3 +39,18 @@ clean:
 # Build the documentation (use `--open` to open in the browser)
 doc *ARGS:
     cargo doc {{ ARGS }}
+
+# Publish the crate
+publish:
+    cargo publish
+
+# List the dependencies
+deps:
+    cargo tree
+
+# Update the dependencies
+update:
+    cargo update
+
+# Run Full checks and format
+full-check: lint format check test
