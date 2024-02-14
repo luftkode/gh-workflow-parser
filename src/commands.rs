@@ -71,7 +71,7 @@ fn parse_to_gh_issue(
 }
 
 pub fn create_issue_from_failed_run(
-    github_cli: impl gh::GitHub,
+    github_cli: Box<dyn gh::GitHub>,
     run_id: &str,
     labels: &str,
     kind: WorkflowKind,

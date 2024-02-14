@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use gh_workflow_parser::{commands, config, gh};
+use gh_workflow_parser::{commands, config, gh::init_github_cli};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let config = config::init()?;
@@ -12,7 +12,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     log::info!("Parsing GitHub repository: {}", config.repo());
 
-    let github_cli = gh::gh_cli::GitHubCli::new(config.repo().to_owned());
+    let github_cli = init_github_cli(config.repo().to_owned(), config.fake_github_cli());
 
     use commands::Command::*;
     match config.subcmd() {

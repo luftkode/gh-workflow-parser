@@ -9,6 +9,33 @@ pub mod gh_cli;
 pub mod gh_cli_fake;
 pub mod util;
 
+/// Get the GitHub CLI and initialize it with a default repository
+/// If `fake` is true, a fake GitHub CLI is returned.
+/// The fake GitHub CLI is used for testing and does not interact with GitHub
+///
+/// # Arguments
+///
+/// * `repo` - The default repository to use
+/// * `fake` - If true, a fake GitHub CLI is returned
+///
+/// # Returns
+///
+/// [`Box<dyn GitHub>`](GitHub) - The GitHub CLI interface
+///
+/// # Example
+///
+/// ```
+/// # use gh_workflow_parser::gh::init_github_cli;
+/// let github_cli = init_github_cli("https://example.com/repo".to_string(), false);
+/// ```
+pub fn init_github_cli(repo: String, fake: bool) -> Box<dyn GitHub> {
+    if fake {
+        Box::new(gh_cli_fake::GitHubCliFake::new(repo))
+    } else {
+        Box::new(gh_cli::GitHubCli::new(repo))
+    }
+}
+
 /// Trait describing the methods that the GitHub CLI should implement
 pub trait GitHub {
     /// Get the summary of a run in a GitHub repository, if `repo` is `None` the default repository is used
