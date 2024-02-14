@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `--fake-github-cli` flag to use a fake/mock GitHub Cli instead of the real one, this allows more intelligent tests without making any API calls at all
+
 ## [0.2.1] - 2024-02-13
 
 ### Added
