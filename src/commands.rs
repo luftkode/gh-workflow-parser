@@ -71,7 +71,7 @@ fn parse_to_gh_issue(
 }
 
 pub fn create_issue_from_failed_run(
-    repo: String,
+    github_cli: impl gh::GitHub,
     run_id: &str,
     labels: &str,
     kind: WorkflowKind,
@@ -79,7 +79,7 @@ pub fn create_issue_from_failed_run(
     no_duplicate: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Run the GitHub CLI to get the workflow run
-    let run_summary = gh::run_summary(&repo, run_id)?;
+    let run_summary = github_cli.run_summary(None, run_id)?;
     log::info!("Run summary: {run_summary}");
 
     let failed_jobs = util::take_lines_with_failed_jobs(run_summary);
@@ -92,8 +92,9 @@ pub fn create_issue_from_failed_run(
     let failed_job_ids = util::id_from_job_lines(&failed_jobs);
     let failed_job_logs: Vec<String> = failed_job_ids
         .iter()
-        .map(|id| gh::failed_job_log(&repo, id))
+        .map(|job_id| github_cli.failed_job_log(None, job_id))
         .collect::<Result<Vec<String>, Box<dyn Error>>>()?;
+
     log::info!("Got {} failed job log(s)", failed_job_logs.len());
 
     let failed_logs = failed_job_logs
@@ -104,13 +105,13 @@ pub fn create_issue_from_failed_run(
 
     let gh_issue = parse_to_gh_issue(
         failed_logs,
-        &repo,
+        github_cli.default_repo(),
         run_id.to_owned(),
         labels.to_string(),
         kind,
     )?;
     if no_duplicate {
-        let similar_issues = gh::issue_bodies_open_with_label(&repo, labels)?;
+        let similar_issues = github_cli.issue_bodies_open_with_label(None, labels)?;
         // Check how similar the issues are
         let smallest_distance = similar_issues
             .iter()
@@ -139,8 +140,7 @@ pub fn create_issue_from_failed_run(
         println!("==== END OF ISSUE BODY ====");
     } else {
         log::debug!("Creating an issue in the remote repository with the following characteristics:\n==== ISSUE TITLE ==== \n{title}\n==== ISSUE LABEL(S) ==== \n{labels}\n==== START OF ISSUE BODY ==== \n{body}\n==== END OF ISSUE BODY ====", title = gh_issue.title(), labels = gh_issue.labels().join(","), body = gh_issue.body());
-
-        gh::create_issue(&repo, gh_issue.title(), &gh_issue.body(), gh_issue.labels())?;
+        github_cli.create_issue(None, gh_issue.title(), &gh_issue.body(), gh_issue.labels())?;
     }
     Ok(())
 }

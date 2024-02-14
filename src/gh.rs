@@ -5,10 +5,58 @@ use std::path::PathBuf;
 use std::sync::OnceLock;
 use std::{error::Error, process::Command};
 
+pub mod gh_cli;
+pub mod gh_cli_fake;
 pub mod util;
 
+/// Trait describing the methods that the GitHub CLI should implement
+pub trait GitHub {
+    /// Get the summary of a run in a GitHub repository, if `repo` is `None` the default repository is used
+    /// Returns the summary as a [String]
+    fn run_summary(&self, repo: Option<&str>, run_id: &str) -> Result<String, Box<dyn Error>>;
+
+    /// Get the log of a failed job in a GitHub repository, if `repo` is `None` the default repository is used
+    /// Returns the log as a [String]
+    fn failed_job_log(&self, repo: Option<&str>, job_id: &str) -> Result<String, Box<dyn Error>>;
+
+    /// Create an issue in a GitHub repository, if `repo` is `None` the default repository is used
+    fn create_issue(
+        &self,
+        repo: Option<&str>,
+        title: &str,
+        body: &str,
+        labels: &[String],
+    ) -> Result<(), Box<dyn Error>>;
+
+    /// Get the bodies of open issues with a specific label in a GitHub repository, if `repo` is `None` the default repository is used
+    /// Returns [`Vec<String>`](Vec) of issue bodies
+    fn issue_bodies_open_with_label(
+        &self,
+        repo: Option<&str>,
+        label: &str,
+    ) -> Result<Vec<String>, Box<dyn Error>>;
+
+    /// Get all labels in a GitHub repository, if `repo` is `None` the default repository is used
+    /// Returns [`Vec<String>`](Vec) of GitHub labels
+    fn all_labels(&self, repo: Option<&str>) -> Result<Vec<String>, Box<dyn Error>>;
+
+    /// Create a label in a GitHub repository, if `repo` is `None` the default repository is used
+    /// The color should be a 6 character hex code (e.g. "FF0000")
+    /// if `force` is true and the label already exists, it will be overwritten
+    fn create_label(
+        &self,
+        repo: Option<&str>,
+        name: &str,
+        color: &str,
+        description: &str,
+        force: bool,
+    ) -> Result<(), Box<dyn Error>>;
+
+    /// Get the default repository for the GitHub CLI
+    fn default_repo(&self) -> &str;
+}
+
 include!(concat!(env!("OUT_DIR"), "/include_gh_cli.rs"));
-//pub const GITHUB_CLI: &str = "gh";
 pub static GITHUB_CLI: OnceLock<OsString> = OnceLock::new();
 pub fn gh_cli() -> &'static OsStr {
     GITHUB_CLI.get_or_init(|| {
