@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             no_duplicate,
         } => {
             log::info!("Creating issue from failed run: {run_id}");
-            commands::create_issue_from_failed_run(
+            commands::create_issue_from_run::create_issue_from_run(
                 github_cli,
                 run_id,
                 label,
