@@ -1,5 +1,5 @@
 //! Parsing error messages from the Yocto and other workflows
-use crate::{commands::WorkflowKind, err_msg_parse::yocto_err::YoctoFailureKind};
+use crate::{commands::WorkflowKind, err_msg_parse::yocto_err::util::YoctoFailureKind};
 use std::error::Error;
 
 use self::yocto_err::YoctoError;
@@ -9,7 +9,7 @@ use self::yocto_err::YoctoError;
 /// The maximum size of a GitHub issue body is 65536
 pub const LOGFILE_MAX_LEN: usize = 5000;
 
-mod yocto_err;
+pub mod yocto_err;
 
 #[derive(Debug)]
 pub enum ErrorMessageSummary {

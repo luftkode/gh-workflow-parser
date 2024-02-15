@@ -28,6 +28,7 @@ which = "6.0.0"
 clap_complete = "4.5.0"
 semver = "1.0.21"
 bzip2 = "0.4.4"
+strum = { version = "0.26", features = ["derive"] }
 
 [build-dependencies]
 bzip2 = "0.4.4"

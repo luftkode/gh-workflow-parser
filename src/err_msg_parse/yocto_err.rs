@@ -38,7 +38,8 @@ pub struct YoctoFailureLog {
     pub contents: String,
 }
 
-/// Find the `--- Error summary ---` section in the log and return the rest of the log until `bitbake -c build <string> failed with error 1`
+/// Parse a log from a Yocto build and return a [YoctoError] containing error
+/// summary, error kind, and logfile contents if it exists and is not too large.
 pub fn parse_yocto_error(log: &str) -> Result<YoctoError, Box<dyn Error>> {
     let error_summary = util::yocto_error_summary(log)?;
     log::debug!(
