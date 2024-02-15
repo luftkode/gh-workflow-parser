@@ -44,3 +44,8 @@ predicates = "3.0.3"
 lto = true
 codegen-units = 1
 panic = 'abort'
+
+[profile.release-ci]
+inherits = "release"
+lto = false
+codegen-units = 32
