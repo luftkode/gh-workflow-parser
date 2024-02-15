@@ -38,7 +38,7 @@ fn create_issue_from_failed_run_yocto() -> Result<(), Box<dyn Error>> {
 
     let stderr_contains_fn =
         predicate::str::contains("Logfile from error summary does not exist at");
-    assert!(stderr_contains_fn.eval(&stderr));
+    assert!(stderr_contains_fn.eval(&stderr), "stderr: {stderr}");
 
     Ok(())
 }

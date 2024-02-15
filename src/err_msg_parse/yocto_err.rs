@@ -1,4 +1,7 @@
-use crate::{err_msg_parse::LOGFILE_MAX_LEN, util::first_abs_path_from_str};
+use crate::{
+    commands::locate_failure_log::logfile_path_from_str, err_msg_parse::LOGFILE_MAX_LEN,
+    util::first_path_from_str,
+};
 use std::error::Error;
 
 use self::util::YoctoFailureKind;
@@ -55,7 +58,7 @@ pub fn parse_yocto_error(log: &str) -> Result<YoctoError, Box<dyn Error>> {
 
     // Find the line with the `Logfile of failure stored in` and get the path
     let log_file_line = util::find_yocto_failure_log_str(&error_summary)?;
-    let path = first_abs_path_from_str(log_file_line)?;
+    let path = first_path_from_str(log_file_line)?;
     let fname = path.file_stem().unwrap().to_str().unwrap();
     let yocto_failure_kind = match YoctoFailureKind::parse_from_logfilename(fname) {
         Ok(kind) => kind,
@@ -66,27 +69,31 @@ pub fn parse_yocto_error(log: &str) -> Result<YoctoError, Box<dyn Error>> {
         },
     };
 
-    let logfile = if path.exists() {
-        let contents = std::fs::read_to_string(&path)?;
-        if contents.len() > LOGFILE_MAX_LEN {
-            log::warn!("Logfile of yocto failure exceeds maximum length of {LOGFILE_MAX_LEN}. It will not be added to the issue body.");
+    let failure_log: Option<YoctoFailureLog> = match logfile_path_from_str(path.to_str().unwrap()) {
+        Ok(p) => {
+            let contents = std::fs::read_to_string(p)?;
+            if contents.len() > LOGFILE_MAX_LEN {
+                log::warn!("Logfile of yocto failure exceeds maximum length of {LOGFILE_MAX_LEN}. It will not be added to the issue body.");
+                None
+            } else {
+                Some(YoctoFailureLog {
+                    name: fname.to_owned(),
+                    contents,
+                })
+            }
+        },
+        Err(e) => {
+            log::trace!("{e}");
+            log::error!("Logfile from error summary does not exist at: {path:?}");
+            log::warn!("Continuing without attempting to attach logfile to issue");
             None
-        } else {
-            Some(YoctoFailureLog {
-                name: fname.to_owned(),
-                contents,
-            })
-        }
-    } else {
-        log::error!("Logfile from error summary does not exist at: {path:?}");
-        log::warn!("Continuing without attempting to attach logfile to issue");
-        None
+        },
     };
 
     let yocto_error = YoctoError {
         summary: error_summary,
         kind: yocto_failure_kind,
-        logfile,
+        logfile: failure_log,
     };
 
     Ok(yocto_error)
