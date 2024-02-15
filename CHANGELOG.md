@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2024-02-15
+
+### Added
+- the release profile `release-ci` to speed up compilation times in use-cases where re-compilation occurs frequently (use `cargo install gh-workflow-prase --profile release-ci`)
+
 ## [0.4.0] - 2024-02-15
 
 ### Added
