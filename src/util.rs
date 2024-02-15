@@ -7,6 +7,45 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use std::io::prelude::*;
 
+/// Parse a path from a string
+/// # Example
+/// ```
+/// # use gh_workflow_parser::util::first_path_from_str;
+/// use std::path::PathBuf;
+///
+/// let haystack = r#"multi line
+/// test string with/path/file.txt is
+/// valid"#;
+/// let path = first_path_from_str(haystack).unwrap();
+/// assert_eq!(path, PathBuf::from("with/path/file.txt"));
+///
+/// // No path in string is an error
+/// let haystack = "Random string with no path";
+/// assert!(first_path_from_str(haystack).is_err());
+///
+/// // Path with no leading '/' and no file extension is OK
+/// let haystack = "foo app/3-_2/t/3 bar";
+/// let path = first_path_from_str(haystack).unwrap();
+/// assert_eq!(path, PathBuf::from("app/3-_2/t/3"));
+///
+/// // More realistic example
+/// let haystack = r#" ERROR: Logfile of failure stored in: /app/yocto/build/tmp/work/x86_64-linux/sqlite3-native/3.43.2/temp/log.do_fetch.21616"#;
+/// let path = first_path_from_str(haystack).unwrap();
+/// assert_eq!(
+///   path,
+///  PathBuf::from("/app/yocto/build/tmp/work/x86_64-linux/sqlite3-native/3.43.2/temp/log.do_fetch.21616")
+/// );
+/// ```
+/// # Errors
+/// This function returns an error if no valid path is found in the string
+pub fn first_path_from_str(s: &str) -> Result<PathBuf, Box<dyn std::error::Error>> {
+    static RE: Lazy<Regex> =
+        Lazy::new(|| Regex::new(r"[a-zA-Z0-9-_.\/]+\/[a-zA-Z0-9-_.]+").unwrap());
+
+    let path_str = RE.find(s).ok_or("No path found in string")?.as_str();
+    Ok(PathBuf::from(path_str))
+}
+
 /// Take the lines with failed jobs from the output of `gh run view`
 pub fn take_lines_with_failed_jobs(output: String) -> Vec<String> {
     static RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"X.*ID [0-9]*\)").unwrap());
