@@ -1,6 +1,6 @@
 [package]
 name = "gh-workflow-parser"
-version = "0.5.0"
+version = "0.5.1"
 documentation = "https://docs.rs/gh-workflow-parser"
 edition = "2021"
 readme = "README.md"

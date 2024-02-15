@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2024-02-15
+
+### Changed
+- Locating the more specific "failure log" from a yocto build failure now uses the same algorithm as `locate-failure-log` when searching for the log to attach to an issue
+
+
 ## [0.5.0] - 2024-02-15
 
 ### Added
