@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2024-02-15
+
+### Added
+- `locate-failure-log` subcommand to locate specific logs that adds details about why a test/build/deployment failed (currently only support `--kind=yocto`)
+
+### Changed
+- The `--repo` flag is no longer a global flag, it is required depending on the used subcommand
 
 ## [0.3.0] - 2024-02-14
 
