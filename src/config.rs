@@ -16,9 +16,6 @@ pub const GH_CLI_MIN_VERSION: semver::Version = semver::Version::new(2, 43, 1);
 pub struct Config {
     #[command(subcommand)]
     command: Option<Command>,
-    /// The GitHub repository to parse
-    #[arg(long, value_hint = ValueHint::Url, required_unless_present = "early-exit-utility")]
-    repo: Option<String>,
     /// Debug flag to run through a scenario without making changes
     #[arg(long, default_value_t = false, global = true)]
     dry_run: bool,
@@ -29,16 +26,11 @@ pub struct Config {
     #[arg(short, long, global = true, default_value_t = 2)]
     verbosity: u8,
     /// Generate completion scripts for the specified shell
-    #[arg(long, global = true, value_hint = ValueHint::Other, name = "SHELL", group = "early-exit-utility")]
+    #[arg(long, global = true, value_hint = ValueHint::Other, name = "SHELL")]
     completions: Option<clap_complete::Shell>,
 }
 
 impl Config {
-    /// Get the repository (URL) to target
-    pub fn repo(&self) -> &str {
-        self.repo.as_ref().expect("Repository not set")
-    }
-
     /// Get the dry run flag
     pub fn dry_run(&self) -> bool {
         self.dry_run

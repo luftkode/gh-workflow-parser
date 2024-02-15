@@ -2,8 +2,10 @@
 use std::{error::Error, path::PathBuf, process::Command};
 
 use crate::gh::gh_cli;
+use bzip2::Compression;
 use once_cell::sync::Lazy;
 use regex::Regex;
+use std::io::prelude::*;
 
 /// Take the lines with failed jobs from the output of `gh run view`
 pub fn take_lines_with_failed_jobs(output: String) -> Vec<String> {
@@ -111,9 +113,6 @@ pub fn set_linux_file_permissions(file: &std::path::Path, mode: u32) -> Result<(
     std::fs::set_permissions(file, perms).unwrap();
     Ok(())
 }
-
-use bzip2::Compression;
-use std::io::prelude::*;
 
 pub fn bzip2_decompress(input: &[u8]) -> Result<Vec<u8>, Box<dyn Error>> {
     let mut d = bzip2::bufread::BzDecoder::new(input);
