@@ -69,7 +69,8 @@ pub fn trim_trailing_just_recipes(log: &str) -> Result<String, Box<dyn Error>> {
     let trimmed = log
         .lines()
         .rev()
-        .skip_while(|line| line.starts_with("error: Recipe"))
+        // Has to be `contains` and not `starts_with` because GitHub action logs injects random stuff so that it's not always at the start
+        .skip_while(|line| line.contains("error: Recipe "))
         .collect::<Vec<&str>>()
         .iter()
         .rev()
@@ -146,5 +147,28 @@ mod tests {
 
         let yocto_failure = YoctoFailureKind::parse_from_logfilename(fname).unwrap();
         assert_eq!(yocto_failure, YoctoFailureKind::DoFetch);
+    }
+
+    const TEST_NOT_TRIMMED_YOCTO_ERROR_SUMMARY: &str = r#"ERROR: sqlite3-native-3_3.43.2-r0 do_fetch: Bitbake Fetcher Error: MalformedUrl('${SOURCE_MIRROR_URL}')
+ERROR: Logfile of failure stored in: /app/yocto/build/tmp/work/x86_64-linux/sqlite3-native/3.43.2/temp/log.do_fetch.21665
+ERROR: Task (virtual:native:/app/yocto/build/../poky/meta/recipes-support/sqlite/sqlite3_3.43.2.bb:do_fetch) failed with exit code '1'
+
+2024-02-16 12:45:43 - ERROR    - Command "/app/yocto/poky/bitbake/bin/bitbake -c build test-template-ci-xilinx-image package-index" failed with error 1
+error: Recipe `in-container-build-ci-image` failed on line 31 with exit code 2
+error: Recipe `run-in-docker` failed with exit code 2
+error: Recipe `build-ci-image` failed with exit code 2"#;
+
+    const TEST_EXPECT_TRIMMED_YOCTO_ERROR_SUMMARY: &str = r#"ERROR: sqlite3-native-3_3.43.2-r0 do_fetch: Bitbake Fetcher Error: MalformedUrl('${SOURCE_MIRROR_URL}')
+ERROR: Logfile of failure stored in: /app/yocto/build/tmp/work/x86_64-linux/sqlite3-native/3.43.2/temp/log.do_fetch.21665
+ERROR: Task (virtual:native:/app/yocto/build/../poky/meta/recipes-support/sqlite/sqlite3_3.43.2.bb:do_fetch) failed with exit code '1'
+
+2024-02-16 12:45:43 - ERROR    - Command "/app/yocto/poky/bitbake/bin/bitbake -c build test-template-ci-xilinx-image package-index" failed with error 1
+"#;
+
+    #[test]
+    pub fn test_trim_yocto_error_summary() {
+        let trimmed = trim_trailing_just_recipes(TEST_NOT_TRIMMED_YOCTO_ERROR_SUMMARY).unwrap();
+        eprintln!("{trimmed}");
+        assert_eq!(trimmed, TEST_EXPECT_TRIMMED_YOCTO_ERROR_SUMMARY);
     }
 }
