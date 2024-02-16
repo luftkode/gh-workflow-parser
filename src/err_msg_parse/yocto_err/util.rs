@@ -69,8 +69,11 @@ pub fn trim_trailing_just_recipes(log: &str) -> Result<String, Box<dyn Error>> {
     let trimmed = log
         .lines()
         .rev()
-        // Has to be `contains` and not `starts_with` because GitHub action logs injects random stuff so that it's not always at the start
-        .skip_while(|line| line.contains("error: Recipe "))
+        .skip_while(|line| {
+            line.starts_with("error: Recipe ")
+                // Also skip the last line that looks like `##[error]Process completed with exit code 2.`
+                || line.starts_with("##[error]Process completed with exit code")
+        })
         .collect::<Vec<&str>>()
         .iter()
         .rev()
