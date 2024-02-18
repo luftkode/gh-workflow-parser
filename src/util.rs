@@ -167,6 +167,44 @@ pub fn bzip2_compress(input: &[u8]) -> Result<Vec<u8>, Box<dyn Error>> {
     Ok(out)
 }
 
+/// Canonicalize a repository URL to the form `https://{host}/{repo}`
+///
+/// # Arguments
+/// * `repo` - The repository URL e.g. `user1/user1-repo`
+/// * `host` - The host for the repository e.g. `github.com`
+///
+/// # Example
+/// ```
+/// # use gh_workflow_parser::util::canonicalize_repo_url;
+/// let repo = "bob/bobbys-repo";
+/// let canonicalized = canonicalize_repo_url(repo, "github.com");
+/// assert_eq!(canonicalized, "https://github.com/bob/bobbys-repo");
+///
+/// // If the host is already in the URL, only the protocol is added
+/// let repo = "github.com/lisa/lisas-repo";
+/// let canonicalized = canonicalize_repo_url(repo, "github.com");
+/// assert_eq!(canonicalized, "https://github.com/lisa/lisas-repo");
+///
+/// // If the URL is already in the canonical form, it is returned as is
+/// let repo = "https://gitlab.com/foo-org/foo-repo";
+/// let canonicalized = canonicalize_repo_url(repo, "gitlab.com");
+/// assert_eq!(canonicalized, repo);
+/// ```
+pub fn canonicalize_repo_url(repo: &str, host: &str) -> String {
+    let canonical_prefix: String = format!("https://{host}/");
+    if repo.starts_with("https://") {
+        if repo.starts_with(&canonical_prefix) {
+            repo.to_string()
+        } else {
+            repo.replace("https://", &canonical_prefix)
+        }
+    } else if repo.starts_with(&format!("{host}/")) {
+        repo.replace(&format!("{host}/"), &canonical_prefix)
+    } else {
+        format!("{canonical_prefix}{repo}")
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -297,5 +335,12 @@ https://github.com/cli/cli/releases/tag/v2.4.0"#;
             .unwrap();
         assert!(output.status.success());
         println!("Output: {}", String::from_utf8_lossy(&output.stdout));
+    }
+
+    #[test]
+    pub fn test_canonicalize_repo_url() {
+        let repo = "luftkode/distro-template";
+        let canonicalized = canonicalize_repo_url(repo, "github.com");
+        assert_eq!(canonicalized, "https://github.com/luftkode/distro-template");
     }
 }
