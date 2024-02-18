@@ -140,7 +140,10 @@ impl Display for FailedJob {
 <details>
 <summary>{name}</summary>
 <br>
+
+```
 {contents}
+```
 </details>"
             ),
             _ => String::from(""),
