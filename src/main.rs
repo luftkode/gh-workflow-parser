@@ -1,6 +1,6 @@
 use std::{error::Error, process::ExitCode};
 
-use gh_workflow_parser::{commands, config, gh::init_github_cli};
+use gh_workflow_parser::{commands, config, gh::init_github_cli, util};
 
 fn main() -> ExitCode {
     match run() {
@@ -38,7 +38,8 @@ fn run() -> Result<(), Box<dyn Error>> {
             no_duplicate,
         } => {
             log::info!("Targeting GitHub repository: {repo}, run: {run_id}, label: {label}, kind: {kind}, no_duplicate: {no_duplicate}");
-            let github_cli = init_github_cli(repo.to_owned(), config.fake_github_cli());
+            let canonicalized_repo_url = util::canonicalize_repo_url(repo, "github.com");
+            let github_cli = init_github_cli(canonicalized_repo_url, config.fake_github_cli());
             commands::create_issue_from_run::create_issue_from_run(
                 github_cli,
                 run_id,

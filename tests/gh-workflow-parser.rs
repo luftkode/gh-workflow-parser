@@ -68,9 +68,9 @@ fn fake_github_cli_create_issue() -> Result<(), Box<dyn Error>> {
         "Command failed with status: {status}\n - stdout: {stdout}\n - stderr: {stderr}"
     );
 
-    let stderr_contains_fn = predicate::str::contains("Fake create_issue for repo=fake-repo.com, title=Scheduled run failed, body=**Run ID**: 1337 [LINK TO RUN](fake-repo.com/actions/runs/1337)");
+    let stderr_contains_fn = predicate::str::contains("Fake create_issue for repo=https://github.com/fake-repo.com, title=Scheduled run failed, body=**Run ID**: 1337 [LINK TO RUN](https://github.com/fake-repo.com/actions/runs/1337)");
 
-    assert!(stderr_contains_fn.eval(&stderr));
+    assert!(stderr_contains_fn.eval(&stderr), "stderr: {stderr}");
 
     Ok(())
 }
