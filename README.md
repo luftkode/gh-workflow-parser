@@ -44,7 +44,10 @@ ERROR: Task (virtual:native:/app/yocto/build/../poky/meta/recipes-support/sqlite
 <details>
 <summary>log.do_fetch.21616</summary>
 <br>
+
+```
 blabla error
+```
 </details>
 
 

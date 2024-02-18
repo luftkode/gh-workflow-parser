@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.3] - 2024-02-18
+
+### Changed
+- Included logs in a created issue are now in a markdown code block
+- Canonicalize repo URL to guarantee valids HTTP links in created issue markdown
+
 ## [0.5.2] - 2024-02-16
 
 ### Changed
