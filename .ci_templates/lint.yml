@@ -1,0 +1,5 @@
+.lint:
+  extends: .install-just
+  script:
+    - rustup component add rustfmt clippy
+    - just _ci_lint
