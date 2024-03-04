@@ -1,0 +1,89 @@
+include:
+  - remote: "https://gitlab.cern.ch/mkonig/fastpasta/-/blob/master/.gitlab-templates/install-just.yml"
+  - local: /.ci-templates/lint.yml
+
+default:
+  image: "rust:latest"
+  before_script:
+    - whoami
+    - which whoami
+    - echo $PATH
+    - hostname -I
+    - date '+%Y-%m-%d %H:%M:%S'
+    - rustc --version
+    - cargo --version
+
+variables:
+  RUST_BACKTRACE: "FULL"
+
+stages:
+  - code-quality
+  - test
+
+pre-commit:
+  image: python:3.12
+  stage: code-quality
+  before_script: pip install pre-commit
+  script: pre-commit run --all-files --show-diff-on-failure
+
+lint:
+  stage: code-quality
+  extends: .lint
+
+lint-nightly:
+  stage: code-quality
+  extends: .lint
+  image: rustlang/rust:nightly
+  allow_failure: true
+
+audit:
+  stage: code-quality
+  script:
+    - cargo install cargo-audit
+    - cargo audit
+
+# Use cargo to test the project
+### Tests and safety ###
+rust-nightly-test:
+  stage: test
+  image: rustlang/rust:nightly
+  allow_failure: true
+  extends: .install-just
+  script: just test --verbose
+
+# Run tests and calculate code coverage
+test-coverage:
+  stage: test
+  image: rustlang/rust:nightly
+  extends: .install-just
+  script:
+    - rustup +nightly component add llvm-tools-preview
+    - cargo install grcov
+    - apt-get update && apt-get install -y libxml2-utils
+    - just test-coverage
+  coverage: '/Coverage: \d+(?:\.\d+)?/'
+  dependencies: []
+  cache: []
+  artifacts:
+    paths:
+      - target/coverage/
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: target/coverage/cobertura.xml
+
+junit-report:
+  stage: test
+  image: rustlang/rust:nightly
+  script:
+    - cargo install junitify
+    - cargo +nightly test -- --format=json -Z unstable-options --report-time | junitify --out $CI_PROJECT_DIR/tests/
+  cache:
+    key: "$CI_COMMIT_REF_NAME"
+    policy: pull
+    paths:
+      - target
+  artifacts:
+    when: always
+    reports:
+      junit: $CI_PROJECT_DIR/tests/*.xml
