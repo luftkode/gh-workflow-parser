@@ -31,8 +31,8 @@ run-pre-commit:
     pre-commit run --all-files
 
 # Format the code
-format:
-    cargo fmt
+format *ARGS:
+    cargo fmt {{ ARGS }}
 
 # Check if it compiles without compiling
 check *ARGS:
@@ -40,8 +40,8 @@ check *ARGS:
 
 
 # Run the tests
-test:
-    cargo test -- --test-threads=1
+test *ARGS:
+    cargo test {{ ARGS }} -- --test-threads=1
 
 # Run tests and collect coverage
 test-coverage: run-test-coverage
@@ -91,6 +91,6 @@ audit *ARGS:
 _ci_lint: \
     (check "--verbose") \
     (lint "--verbose -- -D warnings --no-deps") \
-#    check-version \
     (format "-- --check --verbose") \
     (doc "--verbose") \
+    #check-version \

@@ -5,7 +5,7 @@ use strum::*;
     Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Copy, Display, EnumString, EnumIter,
 )]
 pub enum YoctoFailureKind {
-    /// The 6 standard tasks in Yocto https://docs.yoctoproject.org/ref-manual/tasks.html
+    /// The 6 standard tasks in Yocto <https://docs.yoctoproject.org/ref-manual/tasks.html>
     #[strum(serialize = "do_build")]
     DoBuild,
     #[strum(serialize = "do_compile")]
