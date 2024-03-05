@@ -31,8 +31,8 @@ run-pre-commit:
     pre-commit run --all-files
 
 # Format the code
-format:
-    cargo fmt
+format *ARGS:
+    cargo fmt {{ ARGS }}
 
 # Check if it compiles without compiling
 check *ARGS:
@@ -91,6 +91,6 @@ audit *ARGS:
 _ci_lint: \
     (check "--verbose") \
     (lint "--verbose -- -D warnings --no-deps") \
-#    check-version \
     (format "-- --check --verbose") \
     (doc "--verbose") \
+    #check-version \
