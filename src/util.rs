@@ -74,6 +74,44 @@ pub fn id_from_job_lines(lines: &[String]) -> Vec<String> {
         .collect()
 }
 
+/// Parse text for timestamps and IDs and remove them, returning the modified text without making a copy.
+///
+/// Some compromises are made to be able to remove timestamps in between other symbols e.g. '/83421321/'.
+/// but still avoid removing commit SHAs. That means that these symbols are also removed (any non-letter character
+/// preceding and following an ID).
+///
+/// # Example
+/// ```
+/// # use gh_workflow_parser::util::remove_timestamps;
+/// # use pretty_assertions::assert_eq;
+/// let test_str = r"ID 21442749267 ";
+/// let modified = remove_timestamps(test_str);
+/// assert_eq!(modified, "ID"); // Note that the space is removed
+///
+///
+/// let test_str = r#"ID 21442749267
+/// date: 2024-02-28 00:03:46
+/// other text"#;
+/// let modified = remove_timestamps(test_str);
+/// assert_eq!(modified, "IDdate: \nother text");
+/// ```
+pub fn remove_timestamps(text: &str) -> std::borrow::Cow<str> {
+    static RE: Lazy<Regex> = Lazy::new(|| {
+        Regex::new(
+            r"(?x)
+            # Timestamps like YYYY-MM-DD HH:MM:SS
+            ([0-9]{4}-[0-9]{2}-[0-9]{2}\x20[0-9]{2}:[0-9]{2}:[0-9]{2})
+            |
+            # IDs like 21442749267 but only if they are preceded and followed by non-letter characters
+            (?:[^[a-zA-Z]])([0-9]{10,11})(?:[^[a-zA-Z]])
+        ",
+        )
+        .unwrap()
+    });
+
+    RE.replace_all(text, "")
+}
+
 /// Parse an absolute path from a string. This assumes that the the first '/' found in the string is the start
 /// of the path.
 /// # Example
@@ -342,5 +380,42 @@ https://github.com/cli/cli/releases/tag/v2.4.0"#;
         let repo = "luftkode/distro-template";
         let canonicalized = canonicalize_repo_url(repo, "github.com");
         assert_eq!(canonicalized, "https://github.com/luftkode/distro-template");
+    }
+
+    #[test]
+    pub fn test_remove_timestamps() {
+        let test_str = "ID 8072883145 ";
+        let modified = remove_timestamps(test_str);
+        assert_eq!(modified, "ID");
+    }
+
+    #[test]
+    pub fn test_remove_timestamps_log_text() {
+        const LOG_TEXT: &'static str = r#"**Run ID**: 8072883145 [LINK TO RUN](https://github.com/luftkode/distro-template/actions/runs/8072883145)
+
+        **1 job failed:**
+        - **`Test template xilinx`**
+
+        ### `Test template xilinx` (ID 22055505284)
+        **Step failed:** `📦 Build yocto image`
+        \
+        **Log:** https://github.com/luftkode/distro-template/actions/runs/8072883145/job/22055505284
+        "#;
+
+        const EXPECTED_MODIFIED: &'static str = r#"**Run ID**:[LINK TO RUN](https://github.com/luftkode/distro-template/actions/runs
+
+        **1 job failed:**
+        - **`Test template xilinx`**
+
+        ### `Test template xilinx` (ID
+        **Step failed:** `📦 Build yocto image`
+        \
+        **Log:** https://github.com/luftkode/distro-template/actions/runsjob        "#;
+
+        let modified = remove_timestamps(LOG_TEXT);
+        assert_eq!(
+            modified, EXPECTED_MODIFIED,
+            "Expected: {EXPECTED_MODIFIED}\nGot: {modified}"
+        );
     }
 }

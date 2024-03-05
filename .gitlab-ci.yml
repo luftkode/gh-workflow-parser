@@ -1,6 +1,6 @@
 include:
-  - remote: "https://gitlab.cern.ch/mkonig/fastpasta/-/blob/master/.gitlab-templates/install-just.yml"
-  - local: /.ci-templates/lint.yml
+  - local: /.ci_templates/lint.yml
+  - local: /.ci_templates/install_just.yml
 
 default:
   image: "rust:latest"
@@ -77,7 +77,7 @@ junit-report:
   image: rustlang/rust:nightly
   script:
     - cargo install junitify
-    - cargo +nightly test -- --format=json -Z unstable-options --report-time | junitify --out $CI_PROJECT_DIR/tests/
+    - cargo +nightly test -- --test-threads=1 --format=json -Z unstable-options --report-time | junitify --out $CI_PROJECT_DIR/tests/
   cache:
     key: "$CI_COMMIT_REF_NAME"
     policy: pull

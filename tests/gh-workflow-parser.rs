@@ -1,17 +1,10 @@
-pub use assert_cmd::prelude::*; // Add methods on commands
-pub use assert_cmd::Command;
-pub use assert_fs::fixture::ChildPath;
+use crate::util::*;
+mod util;
+
 /// System test for the GitHub workflow parser.
-use std::error::Error;
-// Get the methods for the Commands struct
-pub use assert_fs::prelude::*;
-pub use assert_fs::TempDir;
-#[allow(unused_imports)]
-pub use predicates::prelude::*; // Used for writing assertions // Create temporary directories
-#[allow(unused_imports)]
-use pretty_assertions::{assert_eq, assert_ne, assert_str_eq};
 
 #[test]
+#[ignore = "Requires authenticating with https://github.com/luftkode/distro-template"]
 fn create_issue_from_failed_run_yocto() -> Result<(), Box<dyn Error>> {
     let mut cmd = Command::cargo_bin("gh-workflow-parser")?;
 
@@ -22,7 +15,7 @@ fn create_issue_from_failed_run_yocto() -> Result<(), Box<dyn Error>> {
         .arg("--kind=yocto")
         .arg("--dry-run");
 
-    let std::process::Output {
+    let Output {
         status,
         stdout,
         stderr,
@@ -54,7 +47,7 @@ fn fake_github_cli_create_issue() -> Result<(), Box<dyn Error>> {
         .arg("--kind=yocto")
         .arg("--fake-github-cli");
 
-    let std::process::Output {
+    let Output {
         status,
         stdout,
         stderr,
@@ -85,9 +78,9 @@ fn locate_failure_log_from_file() -> Result<(), Box<dyn Error>> {
     let dir = TempDir::new()?;
     // Create the whole path in the temp dir
     let path_to_log = dir.path().join(REL_PATH_TO_FAILURE_LOG);
-    std::fs::create_dir_all(path_to_log.parent().unwrap())?;
+    fs::create_dir_all(path_to_log.parent().unwrap())?;
     // Create the file with the test string
-    std::fs::write(&path_to_log, EXPECT_FAILURE_LOG_CONTENTS)?;
+    fs::write(&path_to_log, EXPECT_FAILURE_LOG_CONTENTS)?;
 
     // Now create the yocto build failure log string that should contain the path to the file
     // The test log string is formatted with the path to the temporary file
@@ -107,7 +100,7 @@ other contents",
         .arg(test_log_file.path())
         .arg("--kind=yocto");
 
-    let std::process::Output {
+    let Output {
         status,
         stdout,
         stderr,
@@ -120,10 +113,10 @@ other contents",
         status.success(),
         "Command failed with status: {status}\n - stdout: {stdout}\n - stderr: {stderr}"
     );
-    assert_eq!(stdout, path_to_log.to_str().unwrap());
+    pretty_assert_eq!(stdout, path_to_log.to_str().unwrap());
     // Read the file and check that the contents are as expected
-    let contents = std::fs::read_to_string(&stdout)?;
-    assert_eq!(contents, EXPECT_FAILURE_LOG_CONTENTS);
+    let contents = fs::read_to_string(&stdout)?;
+    pretty_assert_eq!(contents, EXPECT_FAILURE_LOG_CONTENTS);
 
     Ok(())
 }
@@ -134,9 +127,9 @@ fn locate_failure_log_from_stdin() -> Result<(), Box<dyn Error>> {
     let dir = TempDir::new()?;
     // Create the whole path in the temp dir
     let path_to_log = dir.path().join(REL_PATH_TO_FAILURE_LOG);
-    std::fs::create_dir_all(path_to_log.parent().unwrap())?;
+    fs::create_dir_all(path_to_log.parent().unwrap())?;
     // Create the file with the test string
-    std::fs::write(&path_to_log, EXPECT_FAILURE_LOG_CONTENTS)?;
+    fs::write(&path_to_log, EXPECT_FAILURE_LOG_CONTENTS)?;
 
     // Now create the yocto build failure log string that should contain the path to the file
     // The test log string is formatted with the path to the temporary file
@@ -155,7 +148,7 @@ other contents",
         .arg("locate-failure-log")
         .arg("--kind=yocto");
 
-    let std::process::Output {
+    let Output {
         status,
         stdout,
         stderr,
@@ -168,10 +161,10 @@ other contents",
         status.success(),
         "Command failed with status: {status}\n - stdout: {stdout}\n - stderr: {stderr}"
     );
-    assert_eq!(stdout, path_to_log.to_str().unwrap());
+    pretty_assert_eq!(stdout, path_to_log.to_str().unwrap());
     // Read the file and check that the contents are as expected
-    let contents = std::fs::read_to_string(&stdout)?;
-    assert_eq!(contents, EXPECT_FAILURE_LOG_CONTENTS);
+    let contents = fs::read_to_string(&stdout)?;
+    pretty_assert_eq!(contents, EXPECT_FAILURE_LOG_CONTENTS);
 
     Ok(())
 }

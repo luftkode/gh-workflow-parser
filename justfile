@@ -93,4 +93,4 @@ _ci_lint: \
     (lint "--verbose -- -D warnings --no-deps") \
     (format "-- --check --verbose") \
     (doc "--verbose") \
-    #check-version \
+#    check-version \
