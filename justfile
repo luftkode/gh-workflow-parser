@@ -40,8 +40,8 @@ check *ARGS:
 
 
 # Run the tests
-test:
-    cargo test -- --test-threads=1
+test *ARGS:
+    cargo test {{ ARGS }} -- --test-threads=1
 
 # Run tests and collect coverage
 test-coverage: run-test-coverage
