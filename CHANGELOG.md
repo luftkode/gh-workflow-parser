@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.4] - 2024-03-05
+### Fix
+- [#9 - Large amount of timestamps bypasses duplicate check](https://github.com/luftkode/gh-workflow-parser/issues/9#issue-2158319812) fixed in [!12](https://github.com/luftkode/gh-workflow-parser/pull/12)
+
 ## [0.5.3] - 2024-02-18
 
 ### Changed
